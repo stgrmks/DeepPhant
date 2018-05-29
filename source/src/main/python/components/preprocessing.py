@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 from components.helpers import mv_file
 from glob import glob
 
-class tinyImageNet(Dataset): # https://github.com/cs230-stanford/cs230-code-examples/blob/master/pytorch/vision/model/data_loader.py
+class tinyImageNet(Dataset):
     def __init__(self, data_dir, transform = None):
         self.filenames = [os.path.join(file[0], name) for file in os.walk(data_dir) for name in file[-1] if name.endswith('.JPEG')]
         self.labels = [filename.split('/')[-2] for filename in self.filenames]

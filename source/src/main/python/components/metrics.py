@@ -13,4 +13,13 @@ def sk_accuracy_score(y, yHat):
     yHat = yHat.max(dim = 1)[1].detach().cpu().numpy()
     return metrics.accuracy_score(y, yHat)
 
+def sk_precision_score(y, yHat, **params):
+    y = y.detach().cpu().numpy()
+    yHat = yHat.max(dim = 1)[1].detach().cpu().numpy()
+    return metrics.precision_score(y, yHat, **params)
+
+def sk_f1_score(y, yHat, **params):
+    y = y.detach().cpu().numpy()
+    yHat = yHat.max(dim = 1)[1].detach().cpu().numpy()
+    return metrics.f1_score(y, yHat, **params)
 

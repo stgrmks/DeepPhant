@@ -1,5 +1,6 @@
 _author__ = 'MSteger'
 
+import os
 import numpy as np
 import torch
 from torch import nn

@@ -6,7 +6,8 @@ from models.PhantNet import PhantNet, PhantTrain
 from torchvision import transforms
 from components.preprocessing import loaders, tinyImageNet, tinyImageNet_Prepare
 from sklearn.preprocessing import LabelEncoder
-from components.metrics import accuracy_score, sk_accuracy_score
+from components.metrics import accuracy_score, sk_accuracy_score, sk_precision_score, sk_f1_score
+from functools import partial
 
 
 def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'):
@@ -38,7 +39,7 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
         device = device,
         LE = LE,
         print_freq = 10,
-        metrics = [('accuracy_score', accuracy_score), ('sk_accuracy_score', sk_accuracy_score)],#, ('precision_weighted', partial(metrics.precision_score, average = 'weighted')), ('f1_weighted', partial(metrics.f1_score, average = 'weighted'))]
+        metrics = [('accuracy_score', accuracy_score), ('sk_accuracy_score', sk_accuracy_score), ('sk_precision_weighted', partial(sk_precision_score, average = 'weighted')), ('sk_f1_weighted', partial(sk_f1_score, average = 'weighted'))],
         verbose = True
     )
     training.fit(epochs = 10, train_data = data_loaders['train'], val_data = data_loaders['val'])
