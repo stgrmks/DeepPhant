@@ -48,6 +48,5 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
 
 
 if __name__ == '__main__':
-    ##
     model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200')
     print 'done'
