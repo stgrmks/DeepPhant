@@ -8,6 +8,7 @@ from PIL import Image
 from joblib import Parallel, delayed
 from components.helpers import mv_file
 from glob import glob
+from components.helpers import sample_from_tinyImageNet, copy_files
 
 class tinyImageNet(Dataset):
     def __init__(self, data_dir, transform = None):
@@ -22,6 +23,9 @@ class tinyImageNet(Dataset):
         img = Image.open(self.filenames[idx]).convert('RGB')
         if self.transform is not None: img = self.transform(img)
         return img, self.labels[idx]
+
+class PhantDataset(tinyImageNet):
+    pass
 
 def loaders(path, dataset, transformers, **load_params):
     data_splits, data_loaders = [name for name in os.listdir(path) if os.path.isdir(os.path.join(path,name))], {}
@@ -79,8 +83,28 @@ class tinyImageNet_Prepare(object):
         class_mapping = pd.read_csv(filename, header = None, index_col = 0, sep = '\t', lineterminator = '\n')
         return self.df_to_dict(df = class_mapping.loc[classes_lst], col = 1)
 
+def process_img(img_path, transformer, output_dir, output_filename = None):
+    # add options for flips, crops & color jitter!
+    try:
+        img = Image.open(img_path).convert('RGB')
+        new_img = transformer(img)
+        new_img_filename = os.path.split(img_path)[-1]
+        if output_filename is not None:
+            ext = os.path.splitext(os.path.split(img_path)[-1])[-1]
+            new_img_filename = '{}_{}{}'.format(output_dir.split('/')[-2], output_filename,ext.lower())
+        new_img_path = os.path.join(output_dir, new_img_filename)
+        new_img.save(new_img_path)
+        print 'saved {} to {}!'.format(img_path, new_img_path)
+    except Exception as e:
+        print 'failure: {} - {}'.format(img_path, e)
+    return
+
+def run_preprocessing(img_paths, transformer, output_dir, n_jobs = 1, index_imgs = False):
+    if not os.path.exists(output_dir): os.makedirs(output_dir)
+    return Parallel(n_jobs = n_jobs, backend="multiprocessing")(delayed(process_img)(img_path = img_path, transformer = transformer, output_dir = output_dir, output_filename = idx if index_imgs else None) for idx, img_path in enumerate(img_paths))
 
 if __name__ == '__main__':
+    ### checkout dataloader
     transformer = transforms.Compose([
         transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(),
@@ -94,9 +118,16 @@ if __name__ == '__main__':
     # data.restructure_val_folders()
     # data.restructure_train_folders(n_jobs = -1)
     classes = data.get_classes(classes_lst = None)
-
     data_loaders = loaders(path = path, dataset = tinyImageNet, transformers = data_transformers, batch_size = 8, shuffle = True, num_workers = 4, pin_memory = True)
 
+    ### checkout img preprocessing
+    raw_crawler_images = r'/media/msteger/storage/resources/DreamPhant/downloads/'
+    img_paths = [os.path.join(root, file) for root, dirnames, filenames in os.walk(raw_crawler_images) for file in filenames]
+    transformer = transforms.Compose([transforms.Resize((224, 224))])
+    run_preprocessing(img_paths = img_paths, transformer = transformer, output_dir = r'/media/msteger/storage/resources/DreamPhant/1/', n_jobs = -1, index_imgs = True)
 
+    ### checkout sampling from tinyImagenet (for non elephant data)
+    non_Phant_data_path = r'/media/msteger/storage/resources/tiny-imagenet-200/train'
+    non_Phant_data = sample_from_tinyImageNet(data_dir = non_Phant_data_path, size = 6000, exclude_class = ['n01522450'], include_class = None, class_prob = None)
+    copy_files(file_paths=non_Phant_data, new_directory_path=r'/media/msteger/storage/resources/DreamPhant/data/train/0', n_jobs=-1)
 
-    print 'done'

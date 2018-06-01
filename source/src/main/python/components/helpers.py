@@ -1,12 +1,44 @@
 _author__ = 'MSteger'
 
 import os
+import glob
+
 import numpy as np
 import torch
 from torch import nn
 from torch.autograd import Variable
 from collections import OrderedDict
 from torch.nn.modules.module import _addindent
+from shutil import copyfile
+from itertools import compress
+from joblib import Parallel, delayed
+
+def sample_from_tinyImageNet(data_dir, size, exclude_class = None, include_class = None, class_prob = None):
+    train_samples = []
+    if include_class is None: include_class = [dir for dir in os.listdir(data_dir)] if class_prob is None else class_prob.keys()
+    if class_prob is None: class_prob = {dir: 1./len(include_class) for dir in include_class} # equally distributed by default
+
+    if exclude_class is not None:
+        for ex_class in exclude_class: class_prob.pop(ex_class, None)
+
+    for sample_class, sample_prob in class_prob.items():
+        try:
+            sample_class_path = os.path.join(data_dir, sample_class)
+            class_size = int(sample_prob * size)
+            all_class_samples = [f for f in glob.glob('{}/*.*'.format(sample_class_path)) if f.lower().endswith(('.jpeg', '.jpg', '.jpeg', '.png'))]
+            random_selection = np.random.randint(0, len(all_class_samples), class_size)
+            train_samples += list(compress(all_class_samples, random_selection))
+        except Exception as e:
+            print 'failure! {}'.format(e)
+    return train_samples
+
+def cp_file(old_path, new_path):
+    print 'cp {} to {}'.format(old_path, new_path)
+    return copyfile(old_path, new_path)
+
+def copy_files(file_paths, new_directory_path, n_jobs = 1):
+    if not os.path.exists(new_directory_path): os.makedirs(new_directory_path)
+    return Parallel(n_jobs = n_jobs, backend = 'multiprocessing')(delayed(cp_file)(old_path = old_path, new_path = os.path.join(new_directory_path, '0_{}{}'.format(idx, os.path.splitext(old_path)[-1]))) for idx, old_path in enumerate(file_paths))
 
 def mv_file(file_path, rm_folder_in_path = 'images'):
     f = file_path.split('/')
