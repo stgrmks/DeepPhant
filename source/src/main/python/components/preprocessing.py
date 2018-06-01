@@ -11,7 +11,7 @@ from glob import glob
 
 class tinyImageNet(Dataset):
     def __init__(self, data_dir, transform = None):
-        self.filenames = [os.path.join(file[0], name) for file in os.walk(data_dir) for name in file[-1] if name.endswith('.JPEG')]
+        self.filenames = [os.path.join(file[0], name) for file in os.walk(data_dir) for name in file[-1] if name.endswith(('.JPEG', '.jpeg', '.jpg', '.jpeg', '.png', '.PNG'))]
         self.labels = [filename.split('/')[-2] for filename in self.filenames]
         self.transform = transform
 

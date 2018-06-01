@@ -24,13 +24,13 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
     ])
     data_transformers = {'train': transformer, 'val': transformer, 'test': transformer}
     data_loaders = loaders(path = path, dataset = tinyImageNet, transformers = data_transformers, batch_size = batch_size, shuffle = True, num_workers = 4, pin_memory = True)
-    # data_organization= tinyImageNet_Prepare(path = path)
-    # classes = data_organization.get_classes(classes_lst = None)
-    LE = LabelEncoder().fit(['0', '1'])
+    data_organization= tinyImageNet_Prepare(path = path)
+    classes = data_organization.get_classes(classes_lst = None)
+    LE = LabelEncoder().fit(classes.keys())
 
     # model
     device = torch.device('cuda')
-    model = PhantNet(input_size = (3, 224, 224), num_class = 2)
+    model = PhantNet(input_size = (3, 224, 224), num_class = len(classes))
     training = PhantTrain(
         model = model.to(device),
         optimizer = torch.optim.Adam(model.classifier[3].parameters(), lr = 0.01),
@@ -42,12 +42,12 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
         metrics = [('accuracy_score', accuracy_score), ('sk_accuracy_score', sk_accuracy_score), ('sk_precision_weighted', partial(sk_precision_score, average = 'weighted')), ('sk_f1_weighted', partial(sk_f1_score, average = 'weighted'))],
         verbose = True
     )
-    training.fit(epochs = 10, train_data = data_loaders['train'], val_data = None)#data_loaders['val'])
+    training.fit(epochs = 10, train_data = data_loaders['train'], val_data = data_loaders['val'])
     training.evaluate(test_data = data_loaders['test'])
 
     return
 
 
 if __name__ == '__main__':
-    model_evaluation(path = '/media/msteger/storage/resources/DreamPhant/data')
+    model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200')
     print 'done'
