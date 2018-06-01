@@ -6,9 +6,9 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from joblib import Parallel, delayed
-from components.helpers import mv_file
+from components.helpers import mv_file_to_parent_dir
 from glob import glob
-from components.helpers import sample_from_tinyImageNet, copy_files
+from components.helpers import sample_from_tinyImageNet, cp_files
 
 class tinyImageNet(Dataset):
     def __init__(self, data_dir, transform = None):
@@ -73,9 +73,8 @@ class tinyImageNet_Prepare(object):
     def restructure_train_folders(self, file_endswith = '.JPEG', n_jobs = -1):
         path = os.path.join(self.path, 'train')
         filenames = [os.path.join(file[0], name) for file in os.walk(path) for name in file[-1] if name.endswith(file_endswith)]
-        Parallel(n_jobs = n_jobs, backend="multiprocessing")(delayed(mv_file)(file_path = file_path) for file_path in filenames)
+        Parallel(n_jobs = n_jobs, backend="multiprocessing")(delayed(mv_file_to_parent_dir)(file_path = file_path) for file_path in filenames)
         return self
-
 
     def get_classes(self, classes_lst = None):
         filename = os.path.join(self.path, 'words.txt')
@@ -129,5 +128,5 @@ if __name__ == '__main__':
     ### checkout sampling from tinyImagenet (for non elephant data)
     non_Phant_data_path = r'/media/msteger/storage/resources/tiny-imagenet-200/train'
     non_Phant_data = sample_from_tinyImageNet(data_dir = non_Phant_data_path, size = 6000, exclude_class = ['n01522450'], include_class = None, class_prob = None)
-    copy_files(file_paths=non_Phant_data, new_directory_path=r'/media/msteger/storage/resources/DreamPhant/data/train/0', n_jobs=-1)
+    cp_files(file_paths=non_Phant_data, new_directory_path=r'/media/msteger/storage/resources/DreamPhant/data/train/0', n_jobs=-1)
 

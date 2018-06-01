@@ -43,7 +43,7 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
         metrics = [('accuracy_score', accuracy_score), ('sk_accuracy_score', sk_accuracy_score), ('sk_f1_macro', partial(sk_f1_score, average = 'macro')), ('sk_f1_weighted', partial(sk_f1_score, average = 'weighted'))],
         verbose = True
     )
-    training.fit(epochs = 10, train_data = data_loaders['train'], val_data = None)#data_loaders['val'])
+    training.fit(epochs = 10, train_data = data_loaders['train'], val_data = data_loaders['val'])
 
     # evaluation
     training.evaluate(test_data = data_loaders['test'])
@@ -52,5 +52,5 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
 
 
 if __name__ == '__main__':
-    model_evaluation(path = '/media/msteger/storage/resources/DreamPhant/data')
+    model_evaluation(path = '/media/msteger/storage/resources/DreamPhant/datasets')
     print 'done'
