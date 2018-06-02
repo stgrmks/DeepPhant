@@ -83,9 +83,6 @@ class MetricTracker(Callback):
 
 class ProgressBar(Callback):
 
-    def __init__(self):
-        super(Callback, self).__init__()
-
     def on_epoch_begin(self):
         self.progbar = tqdm(total=self.logger['batches'], unit=' batches')
         self.epochs = self.logger['batches']
@@ -93,9 +90,23 @@ class ProgressBar(Callback):
     def on_batch_end(self, y_train, yHat_train):
         self.progbar.update(1)
         self.progbar.set_description('MODE[TRAIN] EPOCH[{}|{}]'.format(self.logger['epoch'], self.logger['epochs']))
+        # TODO: add some metric if they are tracked! maybe with specific param: show_batch_metric etc.
+        return self
 
     def on_epoch_end(self, y_val, yHat_val, y_train, yHat_train):
         self.progbar.close()
+        return self
+
+class ModelCheckpoint(Callback):
+
+    def __init__(self, save_folder_path, metric):
+        super(Callback, self).__init__()
+        self.save_folder_path = save_folder_path
+        self.metric = metric
+
+    def on_epoch_end(self, *_):
+        # TODO: :)
+        return self
 
 
 
