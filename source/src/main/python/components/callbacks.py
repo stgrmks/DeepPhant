@@ -1,5 +1,6 @@
 _author__ = 'MSteger'
 
+import numpy as np
 import torch
 from tqdm import tqdm
 
@@ -83,14 +84,23 @@ class MetricTracker(Callback):
 
 class ProgressBar(Callback):
 
+    def __init__(self, show_batch_metrics = ['accuracy_score', 'sk_accuracy_score']):
+        super(Callback, self).__init__()
+        self.show_batch_metrics = show_batch_metrics
+
     def on_epoch_begin(self):
         self.progbar = tqdm(total=self.logger['batches'], unit=' batches')
         self.epochs = self.logger['batches']
 
     def on_batch_end(self, y_train, yHat_train):
         self.progbar.update(1)
-        self.progbar.set_description('MODE[TRAIN] EPOCH[{}|{}]'.format(self.logger['epoch'], self.logger['epochs']))
-        # TODO: add some metric if they are tracked! maybe with specific param: show_batch_metric etc.
+        desc_string = 'MODE[TRAIN] EPOCH[{}|{}]'.format(self.logger['epoch'], self.logger['epochs'])
+        if self.show_batch_metrics is not None:
+            for b_metric in self.show_batch_metrics:
+                b_metric_val = self.logger['batch_metrics'][self.logger['batch']][b_metric].values()[0]
+                b_metric_avg = np.sum([d[b_metric].values()[0] for d in self.logger['batch_metrics'].values()]) / self.logger['batch']
+                desc_string = '{} {}[{:.4f}|{:.4f}(avg)]'.format(desc_string, b_metric, b_metric_val, b_metric_avg)
+        self.progbar.set_description(desc_string)
         return self
 
     def on_epoch_end(self, y_val, yHat_val, y_train, yHat_train):
