@@ -95,6 +95,8 @@ class ProgressBar(Callback):
     def on_batch_end(self, y_train, yHat_train):
         self.progbar.update(1)
         desc_string = 'MODE[TRAIN] EPOCH[{}|{}]'.format(self.logger['epoch'], self.logger['epochs'])
+
+        # TODO: add func to compute geometric mean instead of arithmetic mean if aproperiate...
         if self.show_batch_metrics is not None:
             for b_metric in self.show_batch_metrics:
                 b_metric_val = self.logger['batch_metrics'][self.logger['batch']][b_metric].values()[0]
