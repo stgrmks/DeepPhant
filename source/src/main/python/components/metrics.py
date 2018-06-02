@@ -23,3 +23,7 @@ def sk_f1_score(y, yHat, **params):
     yHat = yHat.max(dim = 1)[1].detach().cpu().numpy()
     return metrics.f1_score(y, yHat, **params)
 
+def sk_log_loss(y, yHat, **params):
+    y = y.detach().cpu().numpy()
+    yHat = yHat.max(dim = 1)[1].detach().cpu().numpy()
+    return metrics.log_loss(y, yHat, **params)

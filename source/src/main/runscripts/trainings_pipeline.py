@@ -6,7 +6,8 @@ from models.PhantNet import PhantNet, PhantTrain
 from torchvision import transforms
 from components.preprocessing import loaders, PhantDataset
 from sklearn.preprocessing import LabelEncoder
-from components.metrics import accuracy_score, sk_accuracy_score, sk_f1_score
+from components.callbacks import MetricTracker, ProgressBar
+from components import metrics
 from functools import partial
 
 def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'):
@@ -39,14 +40,16 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
         batch_size = batch_size,
         device = device,
         LE = LE,
-        print_freq = 10,
-        metrics = [('accuracy_score', accuracy_score), ('sk_accuracy_score', sk_accuracy_score), ('sk_f1_macro', partial(sk_f1_score, average = 'macro')), ('sk_f1_weighted', partial(sk_f1_score, average = 'weighted'))],
         verbose = True
     )
-    training.fit(epochs = 10, train_data = data_loaders['train'], val_data = data_loaders['val'])
+    training.fit(epochs = 500, train_data = data_loaders['train'], val_data = data_loaders['val'], \
+                 callbacks = [
+                     MetricTracker(metrics = [('accuracy_score', metrics.accuracy_score),('sk_accuracy_score', metrics.sk_accuracy_score)]),
+                     ProgressBar()
+                 ])
 
     # evaluation
-    training.evaluate(test_data = data_loaders['test'])
+    # training.evaluate(test_data = data_loaders['test'])
 
     return
 

@@ -84,8 +84,7 @@ def assemble_datasets(data_path, datasets_folder, **split_params):
     if os.path.exists(datasets_folder): rmtree(datasets_folder)
     os.makedirs(datasets_folder)
     copytree(data_path, os.path.join(datasets_folder, 'train'))
-    return train_test_split(train_dir = os.path.join(datasets_folder, 'train'), test_dir = os.path.join(*['/']+os.path.join(datasets_folder, 'train').split('/')[1:-1] + ['test']), **split_params)
-
+    return train_test_split(train_dir = os.path.join(datasets_folder, 'train'), test_dir = os.path.join(*['/']+os.path.join(datasets_folder, 'train').split('/')[1:-1] + ['val']), **split_params)
 
 def torch_summarize(model, show_weights = True, show_parameters = True):
     tmpstr = model.__class__.__name__ + ' (\n'
@@ -195,6 +194,5 @@ def summary(model, input_size):
     # return summary
 
 if __name__ == '__main__':
-    # train_test_split(train_dir = r'/media/msteger/storage/resources/DreamPhant/datasets/train', test_dir = r'/media/msteger/storage/resources/DreamPhant/datasets/test', n_jobs = -1)
     assemble_datasets(data_path = r'/media/msteger/storage/resources/DreamPhant/data_all', datasets_folder = '/media/msteger/storage/resources/DreamPhant/datasets', stratify = False, n_jobs = -1)
     print 'done'

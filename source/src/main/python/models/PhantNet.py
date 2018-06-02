@@ -31,77 +31,75 @@ class PhantNet(nn.Module):
 
 class PhantTrain(object):
 
-    def __init__(self, model, optimizer, loss, batch_size, device, print_freq = 10, metrics = None, LE = None, verbose = True):
+    def __init__(self, model, optimizer, loss, batch_size, device, LE = None, verbose = True):
         self.model = model
         self.optimizer = optimizer
         self.loss = loss
         self.current_epoch = 1
         self.batch_size = batch_size
         self.device = device
-        self.metrics = metrics
         self.LE = LE
-        self.print_freq = print_freq
-        self.performance_train, self.performance_val, self.performance_test = {}, {}, {}
         self.verbose = verbose
 
-    def compute_metrics(self, y, yHat):
-        performance = {}
-        for metric_name, metric_fn in self.metrics:
-            performance[metric_name] = metric_fn(y, yHat)
-        return performance
-
-    def train_epoch(self, epoch, train_data):
+    def train_epoch(self, epoch, train_data, callbacks):
         self.model.train()
-        batch_performance_train = {}
+        self.logger['epoch'] = epoch
+        callbacks = self._callbacks(callbacks=callbacks, state='on_epoch_begin', set_model=True, set_logger=True, retrieve_logger = True)
+        y_train, yHat_train, batches = [], [], len(train_data)
         for batch_idx, (X, y) in enumerate(train_data):
+            self.logger['batch'] = batch_idx + 1
+            callbacks = self._callbacks(callbacks=callbacks, state='on_batch_begin', set_model=True, set_logger=True, retrieve_logger = True)
             X = autograd.Variable(X).to(self.device)
             if self.LE is not None: y = self.LE.transform(y)
             y = autograd.Variable(torch.from_numpy(np.array(y)), requires_grad=False).to(self.device)
             self.optimizer.zero_grad()
             yHat = self.model(X)
+            yHat_train.append(yHat)
+            y_train.append(y)
             batch_loss = self.loss(yHat, y)
-            batch_performance_train[batch_idx] = self.compute_metrics(y = y, yHat = yHat)
             batch_loss.backward()
             self.optimizer.step()
-            if (batch_idx % self.print_freq == 0) & (self.verbose): print '\rTrain Epoch: {} [{}/{} ({:.1f}%)]\t Batch Loss: {:.6f} Performance Train: {}'.format(epoch +1, (batch_idx + 1) * self.batch_size, len(train_data.dataset), 100.0 * (batch_idx + 1) * self.batch_size / len(train_data.dataset), batch_loss.item(), batch_performance_train[batch_idx])
-        return epoch + 1, batch_performance_train
+            callbacks = self._callbacks(callbacks=callbacks, state='on_batch_end', set_model=True, y_train = y, yHat_train = yHat, retrieve_logger = True)
 
-    def validate(self, epoch, val_data):
+        return epoch, callbacks, y_train, yHat_train
+
+    def validate(self, val_data):
         self.model.eval()
-        batch_performance_val = {}
+        y_val, yHat_val = [], []
         with torch.no_grad():
             for batch_idx, (X, y) in enumerate(val_data):
                 X = X.to(self.device)
                 if self.LE is not None: y = self.LE.transform(y)
                 y = torch.from_numpy(np.array(y)).to(self.device)
-                yHat = self.model(X)
-                batch_performance_val[epoch] = self.compute_metrics(y = y, yHat = yHat)
-        return batch_performance_val
+                yHat_val.append(self.model(X))
+                y_val.append(y)
+        return y_val, yHat_val
 
-    def fit(self, epochs, train_data, val_data = None):
+    def fit(self, epochs, train_data, val_data = None, callbacks = None):
+        self.logger = {}
+        self.logger['epochs'], self.logger['batches'] = epochs, len(train_data)
+        callbacks = self._callbacks(callbacks = callbacks, state = 'set_data', training_data = train_data, validation_data = val_data, retrieve_logger = False)
+        callbacks = self._callbacks(callbacks = callbacks, state = 'on_train_begin', set_model = True, set_logger = True, retrieve_logger = True)
+
         epoch = 0
         while epoch < epochs:
-            epoch, performance_train = self.train_epoch(epoch = epoch, train_data = train_data)
-            performance_train_avg = {key: sum([e[key] for e in performance_train.values()]) / len(performance_train) for key in performance_train.values()[0]}
-            self.performance_train[epoch - 1] = performance_train_avg
-            performance_str = 'Iteration: {} Performance Train (batch avg): {}'.format(epoch, performance_train_avg)
-            if val_data is not None:
-                performance_val = self.validate(epoch = epoch - 1, val_data = val_data)
-                performance_val_avg = {key: sum([e[key] for e in performance_val.values()]) / len(performance_val) for key in performance_val.values()[0]}
-                self.performance_val[epoch - 1] = performance_val_avg
-                performance_str = '{} Performance Val (batch avg): {}'.format(performance_str, performance_val_avg)
-            if self.verbose: print performance_str
+            epoch, callbacks, y_train, yHat_train = self.train_epoch(epoch = epoch+1, train_data = train_data, callbacks = callbacks)
+            y_val, yHat_val = self.validate(val_data = val_data)
+            callbacks = self._callbacks(callbacks=callbacks, state='on_epoch_end', set_model=True, y_val = y_val, yHat_val = yHat_val, y_train = y_train, yHat_train = yHat_train, set_logger=True, retrieve_logger = True)
 
         return self
 
     def evaluate(self, test_data):
         return self
 
-    def callbacks(self):
-        # add tensorboard
-        return
-
-
+    def _callbacks(self, callbacks, state, set_model = False, set_logger = False, retrieve_logger = False, **params):
+        if callbacks is not None:
+            for cb in callbacks:
+                if set_model: cb.set_model(model = self.model)
+                if set_logger: cb.set_logger(logger = self.logger)
+                getattr(cb, state)(**params)
+                if retrieve_logger: self.logger = cb.get_logger()
+        return callbacks
 
 if __name__ == '__main__':
     print 'done'
