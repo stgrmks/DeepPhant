@@ -120,6 +120,17 @@ class ModelCheckpoint(Callback):
         # TODO: :)
         return self
 
+class TensorBoard(Callback):
+
+    def __init__(self, save_folder_path, metric):
+        super(Callback, self).__init__()
+        self.save_folder_path = save_folder_path
+        self.metric = metric
+
+    def on_epoch_end(self, *_):
+        # TODO: :)
+        return self
+
 
 
 
