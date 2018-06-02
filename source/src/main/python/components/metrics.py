@@ -2,6 +2,7 @@ _author__ = 'MSteger'
 
 import torch
 from sklearn import metrics
+from torch import nn
 
 def accuracy_score(y, yHat):
     yHat = yHat.max(dim = 1)[1]
@@ -27,3 +28,7 @@ def sk_log_loss(y, yHat, **params):
     y = y.detach().cpu().numpy()
     yHat = yHat.max(dim = 1)[1].detach().cpu().numpy()
     return metrics.log_loss(y, yHat, **params)
+
+def log_loss(y, yHat):
+    ll = nn.CrossEntropyLoss().forward(yHat, y)
+    return ll.item()

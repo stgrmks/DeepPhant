@@ -84,7 +84,7 @@ class MetricTracker(Callback):
 
 class ProgressBar(Callback):
 
-    def __init__(self, show_batch_metrics = ['accuracy_score', 'sk_accuracy_score']):
+    def __init__(self, show_batch_metrics = ['accuracy_score', 'sk_accuracy_score', 'log_loss']):
         super(Callback, self).__init__()
         self.show_batch_metrics = show_batch_metrics
 

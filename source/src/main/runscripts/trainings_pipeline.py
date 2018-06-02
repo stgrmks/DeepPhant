@@ -44,8 +44,8 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
     )
     training.fit(epochs = 500, train_data = data_loaders['train'], val_data = data_loaders['val'], \
                  callbacks = [
-                     MetricTracker(metrics = [('accuracy_score', metrics.accuracy_score),('sk_accuracy_score', metrics.sk_accuracy_score)]),
-                     ProgressBar()
+                     MetricTracker(metrics = [('log_loss', metrics.log_loss), ('accuracy_score', metrics.accuracy_score),('sk_accuracy_score', metrics.sk_accuracy_score)]),
+                     ProgressBar(show_batch_metrics = ['log_loss'])
                  ])
 
     # evaluation
