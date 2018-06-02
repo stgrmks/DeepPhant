@@ -2,7 +2,6 @@ _author__ = 'MSteger'
 
 import os
 import glob
-
 import numpy as np
 import torch
 from torch import nn
@@ -192,6 +191,10 @@ def summary(model, input_size):
     print('Non-trainable params: ' + str(total_params - trainable_params))
     print('----------------------------------------------------------------')
     # return summary
+
+def geo_mean(iterable):
+    a = np.array(iterable)
+    return a.prod()**(1.0/len(a))
 
 if __name__ == '__main__':
     assemble_datasets(data_path = r'/media/msteger/storage/resources/DreamPhant/data_all', datasets_folder = '/media/msteger/storage/resources/DreamPhant/datasets', stratify = False, n_jobs = -1)

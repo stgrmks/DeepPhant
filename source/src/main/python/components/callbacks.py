@@ -3,6 +3,7 @@ _author__ = 'MSteger'
 import numpy as np
 import torch
 from tqdm import tqdm
+from helpers import geo_mean
 
 class Callback(object):
     """
@@ -100,7 +101,7 @@ class ProgressBar(Callback):
         if self.show_batch_metrics is not None:
             for b_metric in self.show_batch_metrics:
                 b_metric_val = self.logger['batch_metrics'][self.logger['batch']][b_metric].values()[0]
-                b_metric_avg = np.sum([d[b_metric].values()[0] for d in self.logger['batch_metrics'].values()]) / self.logger['batch']
+                b_metric_avg = geo_mean([d[b_metric].values()[0] for d in self.logger['batch_metrics'].values()])#np.sum([d[b_metric].values()[0] for d in self.logger['batch_metrics'].values()]) / self.logger['batch']
                 desc_string = '{} {}[{:.4f}|{:.4f}(avg)]'.format(desc_string, b_metric, b_metric_val, b_metric_avg)
         self.progbar.set_description(desc_string)
         return self
