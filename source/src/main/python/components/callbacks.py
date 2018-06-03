@@ -1,11 +1,11 @@
 _author__ = 'MSteger'
 
-import numpy as np
 import os
 import torch
 import datetime
 from tqdm import tqdm
 from helpers import geo_mean
+from tensorboardX import SummaryWriter
 
 class Callback(object):
     """
@@ -134,9 +134,6 @@ class ModelCheckpoint(Callback):
         if self.verbose: print '\nPerformance  Epoch {} Improved from {} to {}! Saving States & Optimizer to: {}'.format(self.logger['epoch'], best_performance, current_performance, dstn)
         return self
 
-    def on_train_begin(self):
-        return self
-
     def on_epoch_end(self, **_):
         model_ckps = [(file, file.split('__')[1].split('.pkl')[0]) for file in os.listdir(self.save_folder_path) if file.endswith('.pkl')]
         current_performance = self.logger['epoch_metrics'][self.logger['epoch']][self.metric]['val']
@@ -156,14 +153,26 @@ class ModelCheckpoint(Callback):
 
 class TensorBoard(Callback):
 
-    def __init__(self, save_folder_path, metric):
-        super(Callback, self).__init__()
-        self.save_folder_path = save_folder_path
-        self.metric = metric
+    # TODO: add option to write with certain frequency; write graph, histogram and images
 
-    def on_epoch_end(self, *_):
-        # TODO: :)
+    def __init__(self, log_dir):
+        super(Callback, self).__init__()
+        self.log_dir = log_dir
+        self.writer = None
+
+    def on_train_begin(self, **_):
+        self.writer = SummaryWriter(os.path.join(self.log_dir, datetime.datetime.now().__str__()))
         return self
+
+    def on_epoch_end(self, **_):
+        epoch_metrics = self.logger['epoch_metrics'][self.logger['epoch']]
+        for e_metric, e_metric_dct in epoch_metrics.iteritems():
+            for e_metric_split, e_metric_val in e_metric_dct.iteritems():
+                self.writer.add_scalar('{}/{}'.format(e_metric_split, e_metric), e_metric_val, self.logger['epoch'])
+        return self
+
+    def on_train_end(self, **_):
+        return self.writer.close()
 
 
 

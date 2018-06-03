@@ -6,7 +6,7 @@ from models.PhantNet import PhantNet, PhantTrain
 from torchvision import transforms
 from components.preprocessing import loaders, PhantDataset
 from sklearn.preprocessing import LabelEncoder
-from components.callbacks import MetricTracker, ProgressBar, ModelCheckpoint
+from components.callbacks import MetricTracker, ProgressBar, ModelCheckpoint, TensorBoard
 from components import metrics, helpers
 from functools import partial
 
@@ -47,7 +47,8 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
                  callbacks = [
                      MetricTracker(metrics = [('log_loss', metrics.log_loss), ('accuracy_score', metrics.accuracy_score),('sk_accuracy_score', metrics.sk_accuracy_score)]),
                      ProgressBar(show_batch_metrics = ['log_loss']),
-                     ModelCheckpoint(save_folder_path = r'/media/msteger/storage/resources/DreamPhant/models/foobar/', metric = 'log_loss', best_metric_highest = False, verbose = True)
+                     ModelCheckpoint(save_folder_path = r'/media/msteger/storage/resources/DreamPhant/models/foobar/', metric = 'log_loss', best_metric_highest = False, verbose = True),
+                     TensorBoard(log_dir = r'/media/msteger/storage/resources/DreamPhant/logs/foobar/TensorBoard/')
                  ])
 
     # evaluation
