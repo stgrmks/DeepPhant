@@ -12,12 +12,12 @@ from components.helpers import sample_from_tinyImageNet, cp_files
 
 class tinyImageNet(Dataset):
     def __init__(self, data_dir, transform = None):
-        self.filenames = [os.path.join(file[0], name) for file in os.walk(data_dir) for name in file[-1] if name.endswith(('.JPEG', '.jpeg', '.jpg', '.jpeg', '.png', '.PNG'))]
+        self.filenames = [os.path.join(file[0], name) for file in os.walk(data_dir) for name in file[-1] if name.lower().endswith(('.jpeg', '.jpg', '.png'))]
         self.labels = [filename.split('/')[-2] for filename in self.filenames]
         self.transform = transform
 
     def __len__(self):
-        return len(self.filenames)
+        return 500#len(self.filenames)
 
     def __getitem__(self, idx):
         img = Image.open(self.filenames[idx]).convert('RGB')
@@ -83,7 +83,7 @@ class tinyImageNet_Prepare(object):
         return self.df_to_dict(df = class_mapping.loc[classes_lst], col = 1)
 
 def process_img(img_path, transformer, output_dir, output_filename = None):
-    # add options for flips, crops & color jitter!
+    # TODO: add options for flips, crops & color jitter!
     try:
         img = Image.open(img_path).convert('RGB')
         new_img = transformer(img)

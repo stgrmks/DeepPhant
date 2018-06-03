@@ -31,7 +31,7 @@ class PhantNet(nn.Module):
 
 class PhantTrain(object):
 
-    def __init__(self, model, optimizer, loss, batch_size, device, LE = None, verbose = True):
+    def __init__(self, model, optimizer, loss, batch_size, device, LE = None, checkpoint_path = None, verbose = True):
         self.model = model
         self.optimizer = optimizer
         self.loss = loss
@@ -40,6 +40,16 @@ class PhantTrain(object):
         self.device = device
         self.LE = LE
         self.verbose = verbose
+        self.epoch = None
+        if checkpoint_path is not None: self._load_model_from_chkp(checkpoint_path)
+
+    def _load_model_from_chkp(self, checkpoint_path):
+        chkp_dict = torch.load(checkpoint_path)
+        self.epoch = chkp_dict['epoch']
+        self.model.load_state_dict(chkp_dict['state_dict'])
+        self.optimizer.load_state_dict(chkp_dict['optimizer'])
+        if self.verbose: print 'Loading Model States & Optimizer from: {}'.format(checkpoint_path)
+        return self
 
     def train_epoch(self, epoch, train_data, callbacks):
         self.model.train()
@@ -80,8 +90,12 @@ class PhantTrain(object):
         self.logger['epochs'], self.logger['batches'] = epochs, len(train_data)
         callbacks = self._callbacks(callbacks = callbacks, state = 'set_data', training_data = train_data, validation_data = val_data, retrieve_logger = False)
         callbacks = self._callbacks(callbacks = callbacks, state = 'on_train_begin', set_model = True, set_logger = True, retrieve_logger = True)
-
         epoch = 0
+
+        if self.epoch is not None:
+            epoch = self.epoch
+            epochs += self.epoch
+
         while epoch < epochs:
             epoch, callbacks, y_train, yHat_train = self.train_epoch(epoch = epoch+1, train_data = train_data, callbacks = callbacks)
             y_val, yHat_val = self.validate(val_data = val_data)
@@ -95,7 +109,8 @@ class PhantTrain(object):
     def _callbacks(self, callbacks, state, set_model = False, set_logger = False, retrieve_logger = False, **params):
         if callbacks is not None:
             for cb in callbacks:
-                if set_model: cb.set_model(model = self.model)
+                if set_model:
+                    cb.set_model(model = self.model, optimizer = self.optimizer)
                 if set_logger: cb.set_logger(logger = self.logger)
                 getattr(cb, state)(**params)
                 if retrieve_logger: self.logger = cb.get_logger()
