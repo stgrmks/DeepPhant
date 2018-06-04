@@ -5,14 +5,15 @@ import torch
 import torch.nn.functional as F
 from torch import nn, autograd
 from torchvision import models
+from components.ModelSummary import ModelSummary
 
 class PhantNet(nn.Module):
 
-    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 32, 32), num_class = 200):
+    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 224, 224), num_class = 200, freeze_first_features = 5):
         super(PhantNet, self).__init__()
         self.features = pretrained_models.features
         for i, weights in enumerate(self.features.parameters()):
-            if i <= 6: weights.requires_grad = False
+            if i <= freeze_first_features: weights.requires_grad = False
         self.flat_fts = self.get_flat_fts(input_shape, self.features)
         self.classifier = nn.Sequential(
             nn.Linear(self.flat_fts, 100),
@@ -43,7 +44,12 @@ class PhantTrain(object):
         self.LE = LE
         self.verbose = verbose
         self.epoch = None
+        self.summary = self.set_summary()
         if checkpoint_path is not None: self._load_model_from_chkp(checkpoint_path)
+
+    def set_summary(self):
+        self.summary = ModelSummary(model = self.model, device = self.device, input_size = (1,) + self.model.input_shape, verbose = self.verbose)
+        return self.summary
 
     def _load_model_from_chkp(self, checkpoint_path):
         chkp_dict = torch.load(checkpoint_path)

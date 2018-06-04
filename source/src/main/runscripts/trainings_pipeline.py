@@ -19,12 +19,12 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
     transformer_train = transforms.Compose([
         transforms.Resize(224),
         transforms.RandomChoice([
-            transforms.RandomHorizontalFlip(p = 0.8),
-            transforms.RandomGrayscale(p = 0.8),
+            transforms.RandomHorizontalFlip(p = 1),
+            transforms.RandomGrayscale(p = 1),
             transforms.RandomRotation(degrees = [-180, 180]),
-            transforms.RandomVerticalFlip(p=0.8),
+            transforms.RandomVerticalFlip(p=1),
             transforms.RandomResizedCrop(224),
-            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25)
+            transforms.ColorJitter(brightness=0.8, contrast=0.8, saturation=0.8, hue=0.35)
 
         ]),
         transforms.ToTensor(),
