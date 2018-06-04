@@ -50,12 +50,11 @@ class Callback(object):
         pass
 
 class MetricTracker(Callback):
-    # TODO: include save option
 
-    def __init__(self, metrics, save = None, verbose = True):
+    def __init__(self, metrics, save_folder_path = None, verbose = True):
         super(Callback, self).__init__()
         self.metrics = metrics
-        self.save = save
+        self.save_folder_path = save_folder_path
         self.verbose = verbose
 
     def _compute_metrics(self, y_train = None, yHat_train = None, y_val = None, yHat_val = None):
@@ -70,9 +69,20 @@ class MetricTracker(Callback):
 
         return performance
 
+    def _write_file(self, file_path, line, mode = 'w'):
+        with open(file_path, mode) as f:
+            f.write(line)
+            f.close()
+        return self
+
     def on_train_begin(self):
         if 'batch_metrics' not in self.logger.keys(): self.logger['batch_metrics'] = {}
         if 'epoch_metrics' not in self.logger.keys(): self.logger['epoch_metrics'] = {}
+        if (not os.path.exists(self.save_folder_path)) & (self.save_folder_path is not None): os.makedirs(self.save_folder_path)
+        self.file_path = os.path.join(self.save_folder_path, 'MetricTracker.csv')
+        if (not os.path.exists(self.file_path)) & (self.save_folder_path is not None):
+            headers = sorted(['{}__train'.format(x[0]) for x in self.metrics] + ['{}__val'.format(x[0]) for x in self.metrics])
+            self._write_file(file_path=self.file_path, line=','.join(['','epoch'] + headers + ['\n']), mode='w')
         return self
 
     def on_batch_end(self, y_train, yHat_train):
@@ -83,8 +93,14 @@ class MetricTracker(Callback):
     def on_epoch_end(self, y_val, yHat_val, y_train, yHat_train):
         performance = {self.logger['epoch']: self._compute_metrics(y_train = y_train, yHat_train = yHat_train, y_val = y_val, yHat_val = yHat_val)}
         self.logger['epoch_metrics'].update(performance)
-
         if self.verbose: print '\nPerformance Epoch {}: {}'.format(self.logger['epoch'], performance)
+        if self.save_folder_path is not None:
+            headers, line = sorted(['{}__train'.format(x[0]) for x in self.metrics] + ['{}__val'.format(x[0]) for x in self.metrics]), '{}, {}'.format(datetime.datetime.now().__str__(), self.logger['epoch'])
+            for metric in headers:
+                m_name, m_partition = metric.split('__')
+                line = '{},{}'.format(line, performance[self.logger['epoch']][m_name][m_partition])
+            line = '{},\n'.format(line)
+            self._write_file(file_path=self.file_path, line=line, mode='a')
         return self
 
 class ProgressBar(Callback):
@@ -100,14 +116,12 @@ class ProgressBar(Callback):
     def on_batch_end(self, y_train, yHat_train):
         self.progbar.update(1)
         desc_string = 'MODE[TRAIN] EPOCH[{}|{}]'.format(self.logger['epoch'], self.logger['epochs'])
-
         if self.show_batch_metrics is not None:
             for b_metric in self.show_batch_metrics:
                 b_metric_val = self.logger['batch_metrics'][self.logger['batch']][b_metric].values()[0]
                 b_metric_avg = geo_mean([d[b_metric].values()[0] for d in self.logger['batch_metrics'].values()])
                 desc_string = '{} {}[{:.4f}|{:.4f}(avg)]'.format(desc_string, b_metric, b_metric_val, b_metric_avg)
         self.progbar.set_description(desc_string)
-
         return self
 
     def on_epoch_end(self, y_val, yHat_val, y_train, yHat_train):
@@ -140,7 +154,6 @@ class ModelCheckpoint(Callback):
         current_time = datetime.datetime.now().__str__()
         dstn_string = '{}__{}__{}'.format(current_time, current_performance, self.logger['epoch'])
         dstn = os.path.join(self.save_folder_path, '{}.pkl'.format(dstn_string))
-
         if len(model_ckps) > 0:
             best_performance = float(sorted(model_ckps, key=lambda x: x[1], reverse=False)[0][1])
             if ((current_performance > best_performance) & (self.best_metric_highest)) | ((current_performance < best_performance) & (not self.best_metric_highest)):
@@ -149,7 +162,6 @@ class ModelCheckpoint(Callback):
                 if self.verbose: print 'Performance  Epoch {} did not Improve!'.format(self.logger['epoch'])
         else:
             self._save_checkpoint(best_performance = 'NaN', current_performance = current_performance, dstn = dstn)
-
         return self
 
 class TensorBoard(Callback):
@@ -171,16 +183,12 @@ class TensorBoard(Callback):
 
     def on_epoch_end(self, **_):
         if (self.logger['epoch'] % self.update_frequency) == 0:
-
             epoch_metrics = self.logger['epoch_metrics'][self.logger['epoch']]
-
             for e_metric, e_metric_dct in epoch_metrics.iteritems():
                 for e_metric_split, e_metric_val in e_metric_dct.iteritems():
                     self.writer.add_scalar('{}/{}'.format(e_metric_split, e_metric), e_metric_val, self.logger['epoch'])
-
             for name, param in self.model.named_parameters():
                 self.writer.add_histogram(name.replace('.', '/'), param.clone().cpu().data.numpy(), self.logger['epoch'])
-
         return self
 
     def on_train_end(self, **_):

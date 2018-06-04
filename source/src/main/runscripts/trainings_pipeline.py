@@ -66,7 +66,7 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
                          # ('sk_accuracy_score', metrics.sk_accuracy_score),
                          # ('sk_f1_weighted', partial(metrics.sk_f1_score, average = 'weighted')),
                          # ('sk_f1_macro', partial(metrics.sk_f1_score, average='macro')),
-                     ]),
+                     ], save_folder_path = r'/media/msteger/storage/resources/DreamPhant/logs/{}/MetricTracker/'.format(experiment_name)),
                      ProgressBar(show_batch_metrics = ['log_loss']),
                      ModelCheckpoint(save_folder_path = r'/media/msteger/storage/resources/DreamPhant/models/{}/'.format(experiment_name), metric = 'log_loss', best_metric_highest = False, verbose = True),
                      TensorBoard(log_dir = r'/media/msteger/storage/resources/DreamPhant/logs/{}/TensorBoard/'.format(experiment_name), update_frequency = 1)
