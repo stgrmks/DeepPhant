@@ -6,6 +6,7 @@ import datetime
 from tqdm import tqdm
 from helpers import geo_mean
 from tensorboardX import SummaryWriter
+import torchvision.utils as vutils
 
 class Callback(object):
     """
@@ -153,22 +154,33 @@ class ModelCheckpoint(Callback):
 
 class TensorBoard(Callback):
 
-    # TODO: add option to write with certain frequency; write graph, histogram and images
+    # TODO: add option to write images; find fix for graph
 
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, update_frequency = 10):
         super(Callback, self).__init__()
         self.log_dir = log_dir
         self.writer = None
+        self.update_frequency = update_frequency
 
     def on_train_begin(self, **_):
         self.writer = SummaryWriter(os.path.join(self.log_dir, datetime.datetime.now().__str__()))
+        rndm_input = torch.autograd.Variable(torch.rand(1, *self.model.input_shape), requires_grad = True).to(self.logger['device'])
+        fwd_pass = self.model(rndm_input)
+        self.writer.add_graph(self.model, fwd_pass)
         return self
 
     def on_epoch_end(self, **_):
-        epoch_metrics = self.logger['epoch_metrics'][self.logger['epoch']]
-        for e_metric, e_metric_dct in epoch_metrics.iteritems():
-            for e_metric_split, e_metric_val in e_metric_dct.iteritems():
-                self.writer.add_scalar('{}/{}'.format(e_metric_split, e_metric), e_metric_val, self.logger['epoch'])
+        if (self.logger['epoch'] % self.update_frequency) == 0:
+
+            epoch_metrics = self.logger['epoch_metrics'][self.logger['epoch']]
+
+            for e_metric, e_metric_dct in epoch_metrics.iteritems():
+                for e_metric_split, e_metric_val in e_metric_dct.iteritems():
+                    self.writer.add_scalar('{}/{}'.format(e_metric_split, e_metric), e_metric_val, self.logger['epoch'])
+
+            for name, param in self.model.named_parameters():
+                self.writer.add_histogram(name.replace('.', '/'), param.clone().cpu().data.numpy(), self.logger['epoch'])
+
         return self
 
     def on_train_end(self, **_):

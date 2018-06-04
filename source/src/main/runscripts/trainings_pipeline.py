@@ -30,7 +30,7 @@ def model_evaluation(path = '/media/msteger/storage/resources/tiny-imagenet-200'
 
     # model
     device = torch.device('cuda')
-    model = PhantNet(input_size = (3, 224, 224), num_class = 2)
+    model = PhantNet(input_shape = (3, 224, 224), num_class = 2)
 
     # training
     training = PhantTrain(

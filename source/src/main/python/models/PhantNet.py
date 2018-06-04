@@ -8,17 +8,18 @@ from torchvision import models
 
 class PhantNet(nn.Module):
 
-    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_size = (3, 32, 32), num_class = 200):
+    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 32, 32), num_class = 200):
         super(PhantNet, self).__init__()
         self.features = pretrained_models.features
         for weights in self.features.parameters(): weights.requires_grad = False
-        self.flat_fts = self.get_flat_fts(input_size, self.features)
+        self.flat_fts = self.get_flat_fts(input_shape, self.features)
         self.classifier = nn.Sequential(
             nn.Linear(self.flat_fts, 100),
             nn.Dropout(p=0.2),
             nn.ReLU(),
             nn.Linear(100, num_class),
         )
+        self.input_shape = input_shape
 
     def get_flat_fts(self, in_size, fts):
         f = fts(autograd.Variable(torch.ones(1, *in_size)))
@@ -87,7 +88,7 @@ class PhantTrain(object):
 
     def fit(self, epochs, train_data, val_data = None, callbacks = None):
         self.logger = {}
-        self.logger['epochs'], self.logger['batches'] = epochs, len(train_data)
+        self.logger['epochs'], self.logger['batches'], self.logger['device'] = epochs, len(train_data), self.device
         callbacks = self._callbacks(callbacks = callbacks, state = 'set_data', training_data = train_data, validation_data = val_data, retrieve_logger = False)
         callbacks = self._callbacks(callbacks = callbacks, state = 'on_train_begin', set_model = True, set_logger = True, retrieve_logger = True)
         epoch = 0
