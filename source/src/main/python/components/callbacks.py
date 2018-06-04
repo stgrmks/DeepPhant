@@ -6,7 +6,6 @@ import datetime
 from tqdm import tqdm
 from helpers import geo_mean
 from tensorboardX import SummaryWriter
-import torchvision.utils as vutils
 
 class Callback(object):
     """

@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, autograd
 from torchvision import models
-from components.ModelSummary import ModelSummary
+from components.summary import summary
 
 class PhantNet(nn.Module):
 
@@ -48,7 +48,7 @@ class PhantTrain(object):
         if checkpoint_path is not None: self._load_model_from_chkp(checkpoint_path)
 
     def set_summary(self):
-        self.summary = ModelSummary(model = self.model, device = self.device, input_size = (1,) + self.model.input_shape, verbose = self.verbose)
+        self.summary = summary(model = self.model, device = self.device, input_size =(1,) + self.model.input_shape, verbose = self.verbose)
         return self.summary
 
     def _load_model_from_chkp(self, checkpoint_path):
@@ -78,7 +78,6 @@ class PhantTrain(object):
             batch_loss.backward()
             self.optimizer.step()
             callbacks = self._callbacks(callbacks=callbacks, state='on_batch_end', set_model=True, y_train = y, yHat_train = yHat, retrieve_logger = True)
-
         return epoch, callbacks, y_train, yHat_train
 
     def validate(self, val_data):
@@ -109,10 +108,11 @@ class PhantTrain(object):
             y_val, yHat_val = self.validate(val_data = val_data)
             callbacks = self._callbacks(callbacks=callbacks, state='on_epoch_end', set_model=True, y_val = y_val, yHat_val = yHat_val, y_train = y_train, yHat_train = yHat_train, set_logger=True, retrieve_logger = True)
 
-        callbacks = self._callbacks(callbacks = callbacks, state = 'on_train_end', set_model = True, set_logger = True, retrieve_logger = True)
+        self.callbacks = self._callbacks(callbacks = callbacks, state = 'on_train_end', set_model = True, set_logger = True, retrieve_logger = True)
         return self
 
     def evaluate(self, test_data):
+        # TODO: well...
         return self
 
     def _callbacks(self, callbacks, state, set_model = False, set_logger = False, retrieve_logger = False, **params):
