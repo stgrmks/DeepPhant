@@ -11,7 +11,8 @@ class PhantNet(nn.Module):
     def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 32, 32), num_class = 200):
         super(PhantNet, self).__init__()
         self.features = pretrained_models.features
-        for weights in self.features.parameters(): weights.requires_grad = False
+        for i, weights in enumerate(self.features.parameters()):
+            if i <= 6: weights.requires_grad = False
         self.flat_fts = self.get_flat_fts(input_shape, self.features)
         self.classifier = nn.Sequential(
             nn.Linear(self.flat_fts, 100),
@@ -102,6 +103,7 @@ class PhantTrain(object):
             y_val, yHat_val = self.validate(val_data = val_data)
             callbacks = self._callbacks(callbacks=callbacks, state='on_epoch_end', set_model=True, y_val = y_val, yHat_val = yHat_val, y_train = y_train, yHat_train = yHat_train, set_logger=True, retrieve_logger = True)
 
+        callbacks = self._callbacks(callbacks = callbacks, state = 'on_train_end', set_model = True, set_logger = True, retrieve_logger = True)
         return self
 
     def evaluate(self, test_data):

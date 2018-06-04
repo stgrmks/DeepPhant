@@ -13,7 +13,7 @@ from functools import partial
 def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/tiny-imagenet-200'):
 
     # setup
-    batch_size = 32
+    batch_size = 128
 
     # data
     transformer_train = transforms.Compose([
@@ -59,18 +59,22 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
     )
     training.fit(epochs = 500, train_data = data_loaders['train'], val_data = data_loaders['val'], \
                  callbacks = [
-                     MetricTracker(metrics = [('log_loss', metrics.log_loss), ('accuracy_score', metrics.accuracy_score),('sk_accuracy_score', metrics.sk_accuracy_score)]),
+                     MetricTracker(metrics = [
+                         ('log_loss', metrics.log_loss),
+                         ('accuracy_score', metrics.accuracy_score),
+                         ('f1_score', partial(metrics.fbeta_score, beta = 2)),
+                         # ('sk_accuracy_score', metrics.sk_accuracy_score),
+                         # ('sk_f1_weighted', partial(metrics.sk_f1_score, average = 'weighted')),
+                         # ('sk_f1_macro', partial(metrics.sk_f1_score, average='macro')),
+                     ]),
                      ProgressBar(show_batch_metrics = ['log_loss']),
                      ModelCheckpoint(save_folder_path = r'/media/msteger/storage/resources/DreamPhant/models/{}/'.format(experiment_name), metric = 'log_loss', best_metric_highest = False, verbose = True),
                      TensorBoard(log_dir = r'/media/msteger/storage/resources/DreamPhant/logs/{}/TensorBoard/'.format(experiment_name), update_frequency = 1)
                  ])
 
-    # evaluation
-    # training.evaluate(test_data = data_loaders['test'])
-
     return
 
 
 if __name__ == '__main__':
-    model_evaluation(path = '/media/msteger/storage/resources/DreamPhant/datasets', experiment_name = r'trial')
+    model_evaluation(path = '/media/msteger/storage/resources/DreamPhant/datasets', experiment_name = r'foobar')
     print 'done'
