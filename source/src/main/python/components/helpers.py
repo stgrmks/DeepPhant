@@ -85,5 +85,5 @@ def geo_mean(iterable):
     return a.prod()**(1.0/len(a))
 
 if __name__ == '__main__':
-    assemble_datasets(data_path = r'/media/msteger/storage/resources/DreamPhant/data_all', datasets_folder = '/media/msteger/storage/resources/DreamPhant/datasets', stratify = False, n_jobs = -1)
+    assemble_datasets(data_path = r'/media/msteger/storage/resources/DreamPhant/data_all', datasets_folder = '/media/msteger/storage/resources/DreamPhant/datasets', stratify = False, test_size = 0.3, n_jobs = -1)
     print 'done'
