@@ -7,7 +7,7 @@ from torchvision import transforms
 from components.preprocessing import loaders, PhantDataset
 from sklearn.preprocessing import LabelEncoder
 from components.callbacks import MetricTracker, ProgressBar, ModelCheckpoint, TensorBoard
-from components import metrics, helpers
+from components import metrics
 from functools import partial
 
 def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/tiny-imagenet-200'):
