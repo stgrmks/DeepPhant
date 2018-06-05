@@ -12,7 +12,7 @@ class summary(object):
         self.iterate()
         if verbose: self.printer()
 
-    def infere_output(self, input, layer):
+    def compute_output(self, input, layer):
         if isinstance(layer, torch.nn.Linear): input = input.resize(1, np.prod(input.shape[1:]))
         return layer(input)
 
@@ -32,12 +32,12 @@ class summary(object):
             for k, v in self.model._modules.iteritems():
                 if isinstance(v, torch.nn.Sequential):
                     for layer in v:
-                        output = self.infere_output(input, layer)
+                        output = self.compute_output(input, layer)
                         summary.append([k, type(layer).__name__, tuple(input.shape)[1:], tuple(output.shape)[1:]] + self.compute_no_params(layer))
                         input = output
                 else:
                     layer = v
-                    output = self.infere_output(input, layer)
+                    output = self.compute_output(input, layer)
                     summary.append([k, type(layer).__name__, tuple(input.shape)[1:], tuple(output.shape)[1:]] + self.compute_no_params(layer))
                     input = output
         self.summary = summary
@@ -47,18 +47,18 @@ class summary(object):
         if summary is None: summary = self.summary
         total_params, trainable_params = 0, 0
         print 'Model Summary'
-        print '------------------------------------------------------------------------------------------------------------------------------'
-        print '{:>20}  {:>20} {:>20} {:>20} {:>20} {:>20}'.format('Name', 'Type', 'Input', 'Output', 'Params', 'Params(Frozen)')
-        print '---------------------------------------------------------------------------------'
-        for layer in summary:
-            print '{:>20}  {:>20} {:>20} {:>20} {:>20} {:>20}'.format(*layer)
+        print '---------------------------------------------------------------------------------------------------------------------------------'
+        print '{:>2} {:>20} {:>20} {:>20} {:>20} {:>20} {:>20}'.format('Id', 'Name', 'Type', 'Input', 'Output', 'Params', 'Params(Frozen)')
+        print '---------------------------------------------------------------------------------------------------------------------------------'
+        for idx, layer in enumerate(summary):
+            print '{:>2} {:>20}  {:>20} {:>20} {:>20} {:>20} {:>20}'.format(*[idx+1]+layer)
             total_params += layer[-2] + layer[-1]
             trainable_params += layer[-2]
-        print '=============================================================================================================================='
+        print '================================================================================================================================='
         print 'Total params: {0:,}'.format(total_params)
         print 'Trainable params: {0:,}'.format(trainable_params)
         print 'Non-trainable params: {0:,}'.format(total_params - trainable_params)
-        print '------------------------------------------------------------------------------------------------------------------------------'
+        print '---------------------------------------------------------------------------------------------------------------------------------'
 
         return self
 

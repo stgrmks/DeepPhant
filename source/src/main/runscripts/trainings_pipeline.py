@@ -76,5 +76,5 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
 
 
 if __name__ == '__main__':
-    model_evaluation(path = '/media/msteger/storage/resources/DreamPhant/datasets', experiment_name = r'foobar')
+    model_evaluation(path = '/media/msteger/storage/resources/DreamPhant/datasets', experiment_name = r'run')
     print 'done'
