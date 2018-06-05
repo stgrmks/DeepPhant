@@ -48,8 +48,7 @@ class PhantTrain(object):
         if checkpoint_path is not None: self._load_model_from_chkp(checkpoint_path)
 
     def set_summary(self):
-        self.summary = summary(model = self.model, device = self.device, input_size =(1,) + self.model.input_shape, verbose = self.verbose)
-        return self.summary
+        return summary(model = self.model, device = self.device, input_size =(1,) + self.model.input_shape, verbose = self.verbose).summary
 
     def _load_model_from_chkp(self, checkpoint_path):
         chkp_dict = torch.load(checkpoint_path)
