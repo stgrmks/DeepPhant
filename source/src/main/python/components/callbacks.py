@@ -151,6 +151,7 @@ class ModelCheckpoint(Callback):
         return self
 
     def on_epoch_end(self, **_):
+        # TODO: add option for periodic checkpoints
         model_ckps = [(file, file.split('__')[1].split('.pkl')[0]) for file in os.listdir(self.save_folder_path) if file.endswith('.pkl')]
         current_performance = self.logger['epoch_metrics'][self.logger['epoch']][self.metric]['val']
         current_time = datetime.datetime.now().__str__()
