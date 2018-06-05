@@ -54,7 +54,7 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
         batch_size = batch_size,
         device = device,
         LE = LE,
-        checkpoint_path = '/media/msteger/storage/resources/DreamPhant/models/{}/2018-06-05 11:10:18.542376__0.35712903738__141.pkl'.format(experiment_name),
+        checkpoint_path = '/media/msteger/storage/resources/DreamPhant/models/{}/2018-06-05 13:32:41.167151__0.358091980219__173.pkl'.format(experiment_name),
         verbose = True
     )
     training.fit(epochs = 500, train_data = data_loaders['train'], val_data = data_loaders['val'], \
@@ -68,7 +68,7 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
                          # ('sk_f1_macro', partial(metrics.sk_f1_score, average='macro')),
                      ], save_folder_path = r'/media/msteger/storage/resources/DreamPhant/logs/{}/MetricTracker/'.format(experiment_name)),
                      ProgressBar(show_batch_metrics = ['log_loss']),
-                     ModelCheckpoint(save_folder_path = r'/media/msteger/storage/resources/DreamPhant/models/{}/'.format(experiment_name), metric = 'log_loss', best_metric_highest = False, verbose = True),
+                     ModelCheckpoint(save_folder_path = r'/media/msteger/storage/resources/DreamPhant/models/{}/'.format(experiment_name), metric = 'log_loss', best_metric_highest = False, best_only = False, write_frequency = 1, verbose = True),
                      TensorBoard(log_dir = r'/media/msteger/storage/resources/DreamPhant/logs/{}/TensorBoard/'.format(experiment_name), update_frequency = 1)
                  ])
 

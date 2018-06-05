@@ -130,28 +130,27 @@ class ProgressBar(Callback):
 
 class ModelCheckpoint(Callback):
 
-    def __init__(self, save_folder_path, metric = 'log_loss', best_metric_highest = False, verbose = True, best_only = False):
+    def __init__(self, save_folder_path, metric = 'log_loss', best_metric_highest = False, best_only = False, write_frequency = 1, verbose = True):
         super(Callback, self).__init__()
         self.save_folder_path = save_folder_path
         self.metric = metric
         self.best_metric_highest = best_metric_highest
         self.verbose = verbose
         self.best_only = best_only
+        self.write_frequency = write_frequency
         if not os.path.exists(save_folder_path): os.makedirs(save_folder_path)
 
-    def _save_checkpoint(self, best_performance, current_performance, dstn):
+    def _save_checkpoint(self, best_performance, current_performance, dstn, improvement):
         checkpoint = {
             'epoch': self.logger['epoch'],
             'state_dict': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
         }
         torch.save(checkpoint, dstn)
-        improvement = current_performance > best_performance if self.best_metric_highest else current_performance < best_performance
         if self.verbose: print 'Performance  Epoch {} {} from {} to {}! Saving States & Optimizer to: {}'.format(self.logger['epoch'], 'improved' if improvement else 'changed', best_performance, current_performance, dstn)
         return self
 
     def on_epoch_end(self, **_):
-        # TODO: add option for periodic checkpoints
         model_ckps = [(file, file.split('__')[1].split('.pkl')[0]) for file in os.listdir(self.save_folder_path) if file.endswith('.pkl')]
         current_performance = self.logger['epoch_metrics'][self.logger['epoch']][self.metric]['val']
         current_time = datetime.datetime.now().__str__()
@@ -159,16 +158,11 @@ class ModelCheckpoint(Callback):
         dstn = os.path.join(self.save_folder_path, '{}.pkl'.format(dstn_string))
         if (len(model_ckps) > 0):
             best_performance = float(sorted(model_ckps, key=lambda x: x[1], reverse=False)[0][1])
-            if self.best_only:
-                if ((current_performance > best_performance) & (self.best_metric_highest)) | ((current_performance < best_performance) & (not self.best_metric_highest)):
-                    self._save_checkpoint(best_performance = best_performance, current_performance = current_performance, dstn = dstn)
-                else:
-                    if self.verbose: print 'Performance  Epoch {} did not Improve!'.format(self.logger['epoch'])
-            else:
-                self._save_checkpoint(best_performance=best_performance, current_performance=current_performance, dstn=dstn)
-
+            improvement = current_performance > best_performance if self.best_metric_highest else current_performance < best_performance
+            do_write = (self.logger['epoch'] % self.write_frequency == 0)  * improvement if self.best_only else (self.logger['epoch'] % self.write_frequency == 0)
+            if do_write: self._save_checkpoint(best_performance = best_performance, current_performance = current_performance, dstn = dstn, improvement=improvement)
         else:
-            self._save_checkpoint(best_performance = 'NaN', current_performance = current_performance, dstn = dstn)
+            self._save_checkpoint(best_performance = 'NaN', current_performance = current_performance, dstn = dstn, improvement=False)
         return self
 
 class TensorBoard(Callback):
