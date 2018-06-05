@@ -130,12 +130,13 @@ class ProgressBar(Callback):
 
 class ModelCheckpoint(Callback):
 
-    def __init__(self, save_folder_path, metric = 'log_loss', best_metric_highest = False, verbose = True):
+    def __init__(self, save_folder_path, metric = 'log_loss', best_metric_highest = False, verbose = True, best_only = False):
         super(Callback, self).__init__()
         self.save_folder_path = save_folder_path
         self.metric = metric
         self.best_metric_highest = best_metric_highest
         self.verbose = verbose
+        self.best_only = best_only
         if not os.path.exists(save_folder_path): os.makedirs(save_folder_path)
 
     def _save_checkpoint(self, best_performance, current_performance, dstn):
@@ -145,7 +146,8 @@ class ModelCheckpoint(Callback):
             'optimizer': self.optimizer.state_dict(),
         }
         torch.save(checkpoint, dstn)
-        if self.verbose: print 'Performance  Epoch {} Improved from {} to {}! Saving States & Optimizer to: {}'.format(self.logger['epoch'], best_performance, current_performance, dstn)
+        improvement = current_performance > best_performance if self.best_metric_highest else current_performance < best_performance
+        if self.verbose: print 'Performance  Epoch {} {} from {} to {}! Saving States & Optimizer to: {}'.format(self.logger['epoch'], 'improved' if improvement else 'changed', best_performance, current_performance, dstn)
         return self
 
     def on_epoch_end(self, **_):
@@ -154,12 +156,16 @@ class ModelCheckpoint(Callback):
         current_time = datetime.datetime.now().__str__()
         dstn_string = '{}__{}__{}'.format(current_time, current_performance, self.logger['epoch'])
         dstn = os.path.join(self.save_folder_path, '{}.pkl'.format(dstn_string))
-        if len(model_ckps) > 0:
+        if (len(model_ckps) > 0):
             best_performance = float(sorted(model_ckps, key=lambda x: x[1], reverse=False)[0][1])
-            if ((current_performance > best_performance) & (self.best_metric_highest)) | ((current_performance < best_performance) & (not self.best_metric_highest)):
-                self._save_checkpoint(best_performance = best_performance, current_performance = current_performance, dstn = dstn)
+            if self.best_only:
+                if ((current_performance > best_performance) & (self.best_metric_highest)) | ((current_performance < best_performance) & (not self.best_metric_highest)):
+                    self._save_checkpoint(best_performance = best_performance, current_performance = current_performance, dstn = dstn)
+                else:
+                    if self.verbose: print 'Performance  Epoch {} did not Improve!'.format(self.logger['epoch'])
             else:
-                if self.verbose: print 'Performance  Epoch {} did not Improve!'.format(self.logger['epoch'])
+                self._save_checkpoint(best_performance=best_performance, current_performance=current_performance, dstn=dstn)
+
         else:
             self._save_checkpoint(best_performance = 'NaN', current_performance = current_performance, dstn = dstn)
         return self
