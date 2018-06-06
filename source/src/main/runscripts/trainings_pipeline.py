@@ -54,7 +54,7 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
         batch_size = batch_size,
         device = device,
         LE = LE,
-        checkpoint_path = '/media/msteger/storage/resources/DreamPhant/models/{}/2018-06-05 13:32:41.167151__0.358091980219__173.pkl'.format(experiment_name),
+        checkpoint_path = '/media/msteger/storage/resources/DreamPhant/models/{}/2018-06-05 17:55:03.460539__0.361832410097__336.pkl'.format(experiment_name),
         verbose = True
     )
     training.fit(epochs = 500, train_data = data_loaders['train'], val_data = data_loaders['val'], \

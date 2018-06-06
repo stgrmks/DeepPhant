@@ -13,7 +13,12 @@ class summary(object):
         if verbose: self.printer()
 
     def compute_output(self, input, layer):
-        if isinstance(layer, torch.nn.Linear): input = input.resize(1, np.prod(input.shape[1:]))
+        if isinstance(layer, torch.nn.Linear):
+            try:
+                input = input.resize(1, layer.in_features)
+            except Exception as e:
+                print 'Failure! {} >> using hack'.format(e)
+                input = input.mean(-1).mean(-1) # ...
         return layer(input)
 
     def compute_no_params(self, layer):

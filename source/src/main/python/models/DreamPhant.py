@@ -4,8 +4,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from torch.autograd import Variable
-from torchvision import models
-from torchvision import transforms, utils
+from torchvision import transforms
 from PIL import Image, ImageFilter, ImageChops
 
 def load_image(path):
@@ -38,7 +37,7 @@ def dd_helper(image, layer, iterations, lr):
     return im
 
 
-def deep_dream_vgg(image, layer, iterations, lr, octave_scale, num_octaves):
+def deep_dream(image, layer, iterations, lr, octave_scale, num_octaves):
     if num_octaves > 0:
         image1 = image.filter(ImageFilter.GaussianBlur(2))
         if (image1.size[0] / octave_scale < 1 or image1.size[1] / octave_scale < 1):
@@ -47,7 +46,7 @@ def deep_dream_vgg(image, layer, iterations, lr, octave_scale, num_octaves):
             size = (int(image1.size[0] / octave_scale), int(image1.size[1] / octave_scale))
 
         image1 = image1.resize(size, Image.ANTIALIAS)
-        image1 = deep_dream_vgg(image1, layer, iterations, lr, octave_scale, num_octaves - 1)
+        image1 = deep_dream(image1, layer, iterations, lr, octave_scale, num_octaves - 1)
         size = (image.size[0], image.size[1])
         image1 = image1.resize(size, Image.ANTIALIAS)
         image = ImageChops.blend(image, image1, 0.6)
@@ -58,20 +57,16 @@ def deep_dream_vgg(image, layer, iterations, lr, octave_scale, num_octaves):
     return img_result
 
 if __name__ == '__main__':
-    normalise = transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
+    from PhantNet import PhantNet
+    chkp_path = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
+    input_pic = load_image('/media/msteger/storage/resources/DreamPhant/dream/baby_mother_phants.jpg')
+    normalise = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+    preprocess = transforms.Compose([transforms.Resize((224, 224)),transforms.ToTensor(),normalise])
 
-    preprocess = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        normalise
-    ])
-
-    model = models.vgg16(pretrained = True).cuda()
+    model = PhantNet(input_shape = (3, 224, 224), num_class = 2).cuda() #models.vgg16(pretrained = True).cuda()
+    chkp_dict = torch.load(chkp_path)
+    model.load_state_dict(chkp_dict['state_dict'])
     modulelist = list(model.features.modules())
 
-    input_pic = load_image('/home/mks/ownCloud/git/sandbox/data/images/Elephant.jpg')
-    output_pic = deep_dream_vgg(input_pic, 28, 5, 0.2, 2, 20)
+    output_pic = deep_dream(image = input_pic, layer = 28, iterations = 5, lr = 0.2, octave_scale = 2, num_octaves = 20)
     print 'done'

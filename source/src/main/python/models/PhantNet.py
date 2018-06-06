@@ -9,18 +9,21 @@ from components.summary import summary
 
 class PhantNet(nn.Module):
 
-    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 224, 224), num_class = 200, freeze_first_features = 5):
+    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 224, 224), num_class = 200, freeze_feature_layers = 5, freeze_classifier_layers = -1, replace_classifier = False):
         super(PhantNet, self).__init__()
-        self.features = pretrained_models.features
+        self.features, self.classifier = pretrained_models.features, pretrained_models.classifier
         for i, weights in enumerate(self.features.parameters()):
-            if i <= freeze_first_features: weights.requires_grad = False
+            if i >= freeze_feature_layers: weights.requires_grad = False
         self.flat_fts = self.get_flat_fts(input_shape, self.features)
-        self.classifier = nn.Sequential(
-            nn.Linear(self.flat_fts, 100),
-            nn.Dropout(p=0.2),
-            nn.ReLU(),
-            nn.Linear(100, num_class),
-        )
+        if replace_classifier:
+            self.classifier = nn.Sequential(
+                nn.Linear(self.flat_fts, 100),
+                nn.Dropout(p=0.2),
+                nn.ReLU(),
+                nn.Linear(100, num_class),
+            )
+        for i, weights in enumerate(self.classifier.parameters()):
+            if i >= freeze_classifier_layers: weights.requires_grad = False
         self.input_shape = input_shape
 
     def get_flat_fts(self, in_size, fts):
