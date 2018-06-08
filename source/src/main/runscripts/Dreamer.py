@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     # setup
     input_dir = r'/media/msteger/storage/resources/DreamPhant/dream/input/'
-    guideImage = r'/media/msteger/storage/resources/DreamPhant/dream/guides/phant_grey_scale.jpg'
+    guideImage_dir = r'/media/msteger/storage/resources/DreamPhant/dream/guides/'
     # model_chkp = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
     preprocess = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
     device = torch.device('cuda')
@@ -147,10 +147,13 @@ if __name__ == '__main__':
     summary(model=model, device=device, input_size=(1,) + model.input_shape)
 
     # dreaming
-    for rep in range(1, 100, 10):
-        Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
-        Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=5, control=(13, guideImage), step_size=0.01, jitter=32, repeated = rep, file_prefix='phant_grey_{}'.format(rep))
-        Dream = None
-        gc.collect()
+    for guideImage_name in os.listdir(guideImage_dir):
+        guideImage_path = os.path.join(guideImage_dir, guideImage_name)
+        guideImage_name = guideImage_name.split('.jpg')[0]
+        for rep in range(1, 100, 10):
+            Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
+            Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=5, control=(13, guideImage_path), step_size=0.01, jitter=32, repeated = rep, file_prefix='{}_{}'.format(guideImage_name, rep))
+            Dream = None
+            gc.collect()
 
     print 'done'
