@@ -6,21 +6,19 @@ import torch.nn.functional as F
 from torch import nn, autograd
 from torchvision import models
 from components.summary import summary
+from itertools import chain
 
 class PhantNet(nn.Module):
 
-    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 224, 224), num_class = 200, freeze_layers = range(5)):
+    def __init__(self, pretrained_models = models.alexnet(pretrained=True) , input_shape = (3, 224, 224), num_class = 200, freeze_layers = range(5), replace_clf=True):
         super(PhantNet, self).__init__()
         self.features, self.classifier = pretrained_models.features, pretrained_models.classifier
         self.flat_fts = self.get_flat_fts(input_shape, self.features)
-        self.classifier = nn.Sequential(
-            nn.Linear(self.flat_fts, 100),
-            nn.Dropout(p=0.2),
-            nn.ReLU(),
-            nn.Linear(100, num_class),
-        )
-        for i, weights in enumerate(self.classifier.parameters()):
-            if i in freeze_layers: weights.requires_grad = False
+        if replace_clf: self.classifier = nn.Sequential(nn.Linear(self.flat_fts, 100),nn.Dropout(p=0.2),nn.ReLU(),nn.Linear(100, num_class))
+        if freeze_layers is not None:
+            for idx, layer in enumerate(chain(self.features.children(), self.classifier.children())):
+                if idx in freeze_layers:
+                    for p in layer.parameters(): p.requires_grad = False
         self.input_shape = input_shape
 
     def get_flat_fts(self, in_size, fts):

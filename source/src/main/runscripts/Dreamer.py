@@ -127,16 +127,16 @@ if __name__ == '__main__':
     guideImage = r'/media/msteger/storage/resources/DreamPhant/dream/input/single_african_phant.jpg'
     model_chkp = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
     preprocess = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
-    device = torch.device('cpu')
+    device = torch.device('cuda')
 
     # model
-    model = PhantNet(pretrained_models=models.vgg13_bn(pretrained=True), input_shape=(3, 224, 224), freeze_feature_layers=-1, freeze_classifier_layers=-1, replace_classifier=False, num_class=2)
+    model = PhantNet(pretrained_models=models.vgg13_bn(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(32), replace_clf=False)
     # chkp_dict = torch.load(model_chkp)
     # model.load_state_dict(chkp_dict['state_dict'])
     summary(model=model, device=device, input_size=(1,) + model.input_shape)
 
     # dreaming
-    for layer in range(14, 36):
+    for layer in range(30, 31):
         Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
         Dream.transform(preprocess = preprocess, resize = [1024, 1024], layer = layer, octave_n=6, octave_scale=1.4,iter_n=25, control=None, step_size=0.01, jitter=32)
         Dream = None

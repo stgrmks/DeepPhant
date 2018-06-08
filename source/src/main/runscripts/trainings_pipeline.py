@@ -44,8 +44,8 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
 
     # model
     device = torch.device('cuda')
-    model = PhantNet(input_shape = (3, 224, 224), freeze_feature_layers=500, freeze_classifier_layers=500, replace_classifier=True, num_class=2)
-    # TODO: check again
+    model = PhantNet(input_shape = (3, 224, 224), freeze_layers=None, replace_clf=True, num_class=2)
+
     # training
     training = PhantTrain(
         model = model.to(device),
