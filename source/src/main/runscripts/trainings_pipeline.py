@@ -44,7 +44,7 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
 
     # model
     device = torch.device('cuda')
-    model = PhantNet(input_shape = (3, 224, 224), num_class = 2)
+    model = PhantNet(input_shape = (3, 224, 224), freeze_feature_layers=500, freeze_classifier_layers=500, replace_classifier=True, num_class=2)
     # TODO: check again
     # training
     training = PhantTrain(
@@ -54,7 +54,7 @@ def model_evaluation(experiment_name, path = '/media/msteger/storage/resources/t
         batch_size = batch_size,
         device = device,
         LE = LE,
-        checkpoint_path = '/media/msteger/storage/resources/DreamPhant/models/{}/2018-06-05 17:55:03.460539__0.361832410097__336.pkl'.format(experiment_name),
+        checkpoint_path = '/media/msteger/storage/resources/DreamPhant/models/{}/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'.format(experiment_name),
         verbose = True
     )
     training.fit(epochs = 500, train_data = data_loaders['train'], val_data = data_loaders['val'], \
