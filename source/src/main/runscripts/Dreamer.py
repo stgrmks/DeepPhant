@@ -138,10 +138,12 @@ if __name__ == '__main__':
     guideImage_dir = r'/media/msteger/storage/resources/DreamPhant/dream/guides/'
     # model_chkp = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
     preprocess = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
-    device = torch.device('cuda')
+    device = torch.device('cpu')
+    iter_n = 5
+    step_size = 0.005
 
     # model
-    model = PhantNet(pretrained_models=models.alexnet(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(100), replace_clf=False)
+    model = PhantNet(pretrained_models=models.densenet121(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(100), replace_clf=True)
     # chkp_dict = torch.load(model_chkp)
     # model.load_state_dict(chkp_dict['state_dict'])
     summary(model=model, device=device, input_size=(1,) + model.input_shape)
@@ -150,9 +152,10 @@ if __name__ == '__main__':
     for guideImage_name in os.listdir(guideImage_dir):
         guideImage_path = os.path.join(guideImage_dir, guideImage_name)
         guideImage_name = guideImage_name.split('.jpg')[0]
-        for rep in range(1, 100, 10):
+        for rep in range(1, 110, 30):
             Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
-            Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=5, control=(13, guideImage_path), step_size=0.01, jitter=32, repeated = rep, file_prefix='{}_{}'.format(guideImage_name, rep))
+            Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=iter_n, control=(13, guideImage_path), \
+                            step_size=step_size, jitter=32, repeated = rep, file_prefix='{}_{}_{}_{}'.format(guideImage_name, rep, iter_n, step_size))
             Dream = None
             gc.collect()
 
