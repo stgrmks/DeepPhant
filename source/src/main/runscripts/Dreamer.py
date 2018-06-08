@@ -8,6 +8,7 @@ import scipy.ndimage as nd
 import PIL.Image
 from torch.autograd import Variable
 from torchvision import transforms, models
+from tqdm import tqdm
 
 class DreamPhant(object):
 
@@ -24,11 +25,11 @@ class DreamPhant(object):
         img_tensor = preprocess(img).unsqueeze(0) if preprocess is not None else transforms.ToTensor(img)
         return img, img_tensor, img_tensor.numpy()
 
-    def _tensor_to_img(self, t):
-        a = t.numpy()
+    def _data_to_img(self, t, tensor = True):
+        if tensor: t = t.numpy()
         mean = np.array([0.485, 0.456, 0.406]).reshape([1, 1, 3])
         std = np.array([0.229, 0.224, 0.225]).reshape([1, 1, 3])
-        inp = a[0, :, :, :]
+        inp = t[0, :, :, :]
         inp = inp.transpose(1, 2, 0)
         inp = std * inp + mean
         inp *= 255
@@ -63,9 +64,9 @@ class DreamPhant(object):
         mean = np.array([0.485, 0.456, 0.406]).reshape([3, 1, 1])
         std = np.array([0.229, 0.224, 0.225]).reshape([3, 1, 1])
 
-        ox, oy = np.random.randint(-jitter, jitter + 1, 2)
+        ox, oy = np.random.randint(-jitter, jitter + 1, 2) # offset by random jitter
 
-        img = np.roll(np.roll(img, ox, -1), oy, -2)
+        img = np.roll(np.roll(img, ox, -1), oy, -2) # apply jitter shift
         tensor = torch.Tensor(img)
 
         img_var = self._image_to_variable(tensor, requires_grad=True)
@@ -82,7 +83,7 @@ class DreamPhant(object):
 
         result = img_var.data.cpu().numpy()
         result = np.roll(np.roll(result, -ox, -1), -oy, -2)
-        result[0, :, :, :] = np.clip(result[0, :, :, :], -mean / std, (1 - mean) / std)
+        result[0, :, :, :] = np.clip(result[0, :, :, :], -mean / std, (1 - mean) / std) # normalize img
 
         return torch.Tensor(result)
 
@@ -105,12 +106,21 @@ class DreamPhant(object):
 
         return src
 
-    def transform(self, preprocess, layer, resize = [1024, 1024], **dream_args):
+    def transform(self, preprocess, layer, control=None, resize = [1024, 1024], repeated = 10, **dream_args):
+        if (repeated is None) | (repeated is False): repeated = 1
+        if control is not None:
+            _, guideImage_tensor, _ = self._load_image(path=control[1], preprocess=preprocess, resize=resize)
+            control = self._extract_features(img_tensor=guideImage_tensor, layer = control[0])
         for img_name in os.listdir(self.input_dir):
             img_path = os.path.join(self.input_dir, img_name)
-            input_img, input_tensor, input_np = self._load_image(path=img_path, preprocess=preprocess, resize=resize)
-            DeepDream = self.DeepDream(base_img=input_np, layer = layer, **dream_args)
-            DeepDream = self._tensor_to_img(DeepDream)
+            _, _, frame = self._load_image(path=img_path, preprocess=preprocess, resize=resize)
+            bar = tqdm(total=repeated, unit='iteration')
+            for i in range(repeated):
+                frame = self.DeepDream(base_img=frame, layer = layer, control = control, **dream_args).numpy()
+                bar.update(1)
+                bar.set_description('Processing Image: {}'.format(img_name))
+            bar.close()
+            DeepDream = self._data_to_img(frame, tensor=False)
             output_dir = os.path.join(self.input_dir.replace('/input', '/output'), 'layer{}'.format(layer))
             if not os.path.exists(output_dir): os.makedirs(output_dir)
             output_path = os.path.join(output_dir, img_name)
@@ -124,13 +134,13 @@ if __name__ == '__main__':
 
     # setup
     input_dir = r'/media/msteger/storage/resources/DreamPhant/dream/input/'
-    guideImage = r'/media/msteger/storage/resources/DreamPhant/dream/input/single_african_phant.jpg'
-    model_chkp = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
+    guideImage = r'/media/msteger/storage/resources/DreamPhant/dream/guides/roses.jpg'
+    # model_chkp = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
     preprocess = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
-    device = torch.device('cuda')
+    device = torch.device('cpu')
 
     # model
-    model = PhantNet(pretrained_models=models.vgg13_bn(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(32), replace_clf=False)
+    model = PhantNet(pretrained_models=models.densenet161(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(100), replace_clf=False)
     # chkp_dict = torch.load(model_chkp)
     # model.load_state_dict(chkp_dict['state_dict'])
     summary(model=model, device=device, input_size=(1,) + model.input_shape)
@@ -138,7 +148,7 @@ if __name__ == '__main__':
     # dreaming
     for layer in range(30, 31):
         Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
-        Dream.transform(preprocess = preprocess, resize = [1024, 1024], layer = layer, octave_n=6, octave_scale=1.4,iter_n=25, control=None, step_size=0.01, jitter=32)
+        Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 0, octave_n=6, octave_scale=1.4,iter_n=5, control=(0, guideImage), step_size=0.01, jitter=32, repeated = False)
         Dream = None
         gc.collect()
 
