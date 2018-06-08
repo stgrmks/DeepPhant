@@ -106,7 +106,7 @@ class DreamPhant(object):
 
         return src
 
-    def transform(self, preprocess, layer, control=None, resize = [1024, 1024], repeated = 10, **dream_args):
+    def transform(self, preprocess, layer, control=None, resize = [1024, 1024], repeated = 10, file_prefix = None,**dream_args):
         if (repeated is None) | (repeated is False): repeated = 1
         if control is not None:
             _, guideImage_tensor, _ = self._load_image(path=control[1], preprocess=preprocess, resize=resize)
@@ -123,6 +123,7 @@ class DreamPhant(object):
             DeepDream = self._data_to_img(frame, tensor=False)
             output_dir = os.path.join(self.input_dir.replace('/input', '/output'), 'layer{}'.format(layer))
             if not os.path.exists(output_dir): os.makedirs(output_dir)
+            if file_prefix is not None: img_name = '{}_{}'.format(file_prefix, img_name)
             output_path = os.path.join(output_dir, img_name)
             DeepDream.save(output_path)
             if self.verbose: print 'saved img {} to {}'.format(os.path.split(img_name)[-1], output_path)
@@ -134,21 +135,21 @@ if __name__ == '__main__':
 
     # setup
     input_dir = r'/media/msteger/storage/resources/DreamPhant/dream/input/'
-    guideImage = r'/media/msteger/storage/resources/DreamPhant/dream/guides/roses.jpg'
+    guideImage = r'/media/msteger/storage/resources/DreamPhant/dream/guides/phant_grey_scale.jpg'
     # model_chkp = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
     preprocess = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
-    device = torch.device('cpu')
+    device = torch.device('cuda')
 
     # model
-    model = PhantNet(pretrained_models=models.densenet161(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(100), replace_clf=False)
+    model = PhantNet(pretrained_models=models.alexnet(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(100), replace_clf=False)
     # chkp_dict = torch.load(model_chkp)
     # model.load_state_dict(chkp_dict['state_dict'])
     summary(model=model, device=device, input_size=(1,) + model.input_shape)
 
     # dreaming
-    for layer in range(30, 31):
+    for rep in range(1, 100, 10):
         Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
-        Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 0, octave_n=6, octave_scale=1.4,iter_n=5, control=(0, guideImage), step_size=0.01, jitter=32, repeated = False)
+        Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=5, control=(13, guideImage), step_size=0.01, jitter=32, repeated = rep, file_prefix='phant_grey_{}'.format(rep))
         Dream = None
         gc.collect()
 
