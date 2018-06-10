@@ -19,7 +19,7 @@ class DreamPhant(object):
         self.step_fn = self.make_step if step_fn is None else step_fn
         self.verbose = verbose
 
-    def _load_image(self, path, preprocess, resize):
+    def _load_image(self, path, preprocess, resize = None):
         img = PIL.Image.open(path)
         if resize is not None: img.thumbnail(resize, PIL.Image.ANTIALIAS)
         img_tensor = preprocess(img).unsqueeze(0) if preprocess is not None else transforms.ToTensor(img)
@@ -39,9 +39,10 @@ class DreamPhant(object):
     def _image_to_variable(self, image, requires_grad=False):
         return Variable(image.cuda() if self.device == torch.device('cuda') else image, requires_grad=requires_grad)
 
-    def _extract_features(self, img_tensor, layer):
+    def _extract_features(self, img_tensor, layer, model = None):
+        if model is None: model = self.model
         features = self._image_to_variable(img_tensor, requires_grad=True) if not isinstance(img_tensor, (torch.cuda.FloatTensor if self.device == torch.device('cuda')  else torch.Tensor)) else img_tensor
-        for index, current_layer in enumerate(self.model.features.children()):
+        for index, current_layer in enumerate(model.features.children()):
             features = current_layer(features)
             if index == layer: break
         return features
@@ -109,7 +110,7 @@ class DreamPhant(object):
     def transform(self, preprocess, layer, control=None, resize = [1024, 1024], repeated = 10, file_prefix = None,**dream_args):
         if (repeated is None) | (repeated is False): repeated = 1
         if control is not None:
-            _, guideImage_tensor, _ = self._load_image(path=control[1], preprocess=preprocess, resize=resize)
+            _, guideImage_tensor, _ = self._load_image(path=control[2], preprocess=control[3], resize=control[4])
             control = self._extract_features(img_tensor=guideImage_tensor, layer = control[0])
         for img_name in os.listdir(self.input_dir):
             img_path = os.path.join(self.input_dir, img_name)
@@ -130,23 +131,21 @@ class DreamPhant(object):
         return self
 
 if __name__ == '__main__':
-    from models.PhantNet import PhantNet
-    from components.summary import summary
+    from utils.helpers import summary
 
     # setup
     input_dir = r'/media/msteger/storage/resources/DreamPhant/dream/input/'
     guideImage_dir = r'/media/msteger/storage/resources/DreamPhant/dream/guides/'
-    # model_chkp = r'/media/msteger/storage/resources/DreamPhant/models/run/2018-06-05 20:35:22.740193__0.359831720591__449.pkl'
     preprocess = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
-    device = torch.device('cpu')
+    preprocess_resize = transforms.Compose([transforms.Resize((224, 224)),transforms.ToTensor(),transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    device = torch.device('cuda')
     iter_n = 5
     step_size = 0.005
 
     # model
-    model = PhantNet(pretrained_models=models.densenet121(pretrained=True), input_shape=(3, 224, 224), freeze_layers=range(100), replace_clf=True)
-    # chkp_dict = torch.load(model_chkp)
-    # model.load_state_dict(chkp_dict['state_dict'])
-    summary(model=model, device=device, input_size=(1,) + model.input_shape)
+    model = models.alexnet(pretrained=True)
+    for weights in model.parameters(): weights.requires_grad = False
+    summary(model=model, device=device, input_size=(1,3,224,224))
 
     # dreaming
     for guideImage_name in os.listdir(guideImage_dir):
@@ -154,7 +153,7 @@ if __name__ == '__main__':
         guideImage_name = guideImage_name.split('.jpg')[0]
         for rep in range(1, 110, 30):
             Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
-            Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=iter_n, control=(13, guideImage_path), \
+            Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=iter_n, control=(model, 13, guideImage_path, preprocess_resize, None),\
                             step_size=step_size, jitter=32, repeated = rep, file_prefix='{}_{}_{}_{}'.format(guideImage_name, rep, iter_n, step_size))
             Dream = None
             gc.collect()
