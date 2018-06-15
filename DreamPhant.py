@@ -132,18 +132,21 @@ class DreamPhant(object):
 
 if __name__ == '__main__':
     from utils.helpers import summary
+    print torch.__version__
 
     # setup
     input_dir = r'/media/msteger/storage/resources/DreamPhant/dream/input/'
-    guideImage_dir = r'/media/msteger/storage/resources/DreamPhant/dream/guides/'
+    guideImage_dir = r'/media/msteger/storage/resources/DreamPhant/dream/guides/selected/'
     preprocess = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
     preprocess_resize = transforms.Compose([transforms.Resize((224, 224)),transforms.ToTensor(),transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     device = torch.device('cuda')
     iter_n = 5
-    step_size = 0.005
+    step_size = 0.01
+    jitter = 32
+    guided = True
 
     # model
-    model = models.alexnet(pretrained=True)
+    model = models.vgg19(pretrained=True)
     for weights in model.parameters(): weights.requires_grad = False
     summary(model=model, device=device, input_size=(1,3,224,224))
 
@@ -151,10 +154,10 @@ if __name__ == '__main__':
     for guideImage_name in os.listdir(guideImage_dir):
         guideImage_path = os.path.join(guideImage_dir, guideImage_name)
         guideImage_name = guideImage_name.split('.jpg')[0]
-        for rep in range(1, 110, 30):
+        for rep in range(30, 120, 30):
             Dream = DreamPhant(model=model, input_dir=input_dir, device=device)
-            Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 13, octave_n=6, octave_scale=1.4,iter_n=iter_n, control=(model, 13, guideImage_path, preprocess_resize, None),\
-                            step_size=step_size, jitter=32, repeated = rep, file_prefix='{}_{}_{}_{}'.format(guideImage_name, rep, iter_n, step_size))
+            Dream.transform(preprocess = preprocess, resize = [768, 1024], layer = 20, octave_n=6, octave_scale=1.4,iter_n=iter_n, control=(model, 20, guideImage_path, preprocess_resize, None) if guided else None,\
+                            step_size=step_size, jitter=jitter, repeated = rep, file_prefix='{}_{}_{}_{}_{}_{}'.format(guideImage_name, rep, iter_n, step_size, jitter, guided))
             Dream = None
             gc.collect()
 
